@@ -33,7 +33,7 @@ def FindAps(pkt):
             radiotap = pkt.getlayer(RadioTap)
             signal = radiotap.dBm_AntSignal
 
-            if re.search('12345', wifiphiser):
+            if re.search('Serial Number', wifiphiser):
                 phiser = 'wifiphiser is around'
             else:
                 phiser = 'No wifiphiser around'
