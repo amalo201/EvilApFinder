@@ -22,13 +22,19 @@ class accesspoint_object:
 
 def FindAps(pkt) :
 	
-	if pkt.haslayer(Dot11Beacon):
+	if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
 			if pkt.addr2 not in aps:
 				aps.append(pkt.addr2)	
-				encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}")
-
+				encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
+                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+				wifiphiser = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
+                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
 				radiotap = pkt.getlayer(RadioTap)
 				signal = radiotap.dBm_AntSignal
+
+				if re.search('12345', wifiphiser): phiser = 'wifiphiser is around'
+				else: phiser = 'No wifiphiser around'
+
 				if re.search("privacy", encryption): enc = 'Y'
 				else: enc = 'N'
 				print " [+] %s with MAC %s channel: %s encryption: %s signal: %s" %(pkt.info, pkt.addr2,int( ord(pkt[Dot11Elt:3].info)), enc, signal)
@@ -84,7 +90,7 @@ if __name__ == "__main__":
 	signal.signal(signal.SIGINT, signal_handler)
 	
 
-	sniff(iface=interface, count = 200, prn = FindAps)
+	sniff(iface=interface, count = 500, prn = FindAps)
 	#Test(wname)
 	prino()	
 	
