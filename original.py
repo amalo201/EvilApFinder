@@ -13,36 +13,30 @@ list_accesspoints = []
 
 
 class accesspoint_object:
-    def __init__(self, ssid, mac, channel, enc, signal, phiser):
+    def __init__(self, ssid, mac, channel, enc, signal):
         self.ssid = ssid
         self.mac = mac
         self.channel = channel
         self.enc = enc
         self.signal = signal
-        self.phiser = phiser
 
 
 def FindAps(pkt):
-    if  pkt.haslayer(Dot11ProbeResp):
+    if  pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
         if pkt.addr2 not in aps:
             aps.append(pkt.addr2)
             encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
                 {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
-            wifiphiser = pkt.sprintf("{Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+
             radiotap = pkt.getlayer(RadioTap)
             signal = radiotap.dBm_AntSignal
-
-            if re.search('12345', wifiphiser):
-                phiser = 'wifiphiser is around'
-            else:
-                phiser = 'No wifiphiser around'
 
             if re.search("privacy", encryption):
                 enc = 'Y'
             else:
                 enc = 'N'
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
-            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser))
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal)
+            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal))
 
             wname.append(pkt.info)
 
@@ -98,12 +92,10 @@ def signal_handler(signal, frame):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print
-        "Usage %s with monitor_interface" % sys.argv[0]
+        print "Usage %s with monitor_interface" % sys.argv[0]
         sys.exit(1)
 
-    print
-    "[+] Scanning all the channels this can take some time....                                                          "
+    print "[+] Scanning all the channels this can take some time....                                                          "
 
     interface = sys.argv[1]
 
@@ -112,6 +104,6 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    sniff(iface=interface, count=10000, prn=FindAps)
+    sniff(iface=interface, count=100, prn=FindAps)
     # Test(wname)
     prino()
