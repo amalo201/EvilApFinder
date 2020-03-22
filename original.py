@@ -11,13 +11,13 @@ duplicates = []
 wname = []
 list_accesspoints= []
 class accesspoint_object:
-  def __init__(self, ssid, mac, channel, enc, signal):
+  def __init__(self, ssid, mac, channel, enc, signal, phiser):
     self.ssid = ssid
     self.mac = mac
     self.channel = channel
     self.enc = enc
     self.signal = signal
-
+    self.phiser = phiser
 
 
 def FindAps(pkt) :
@@ -37,9 +37,9 @@ def FindAps(pkt) :
 
 				if re.search("privacy", encryption): enc = 'Y'
 				else: enc = 'N'
-				print " [+] %s with MAC %s channel: %s encryption: %s signal: %s" %(pkt.info, pkt.addr2,int( ord(pkt[Dot11Elt:3].info)), enc, signal)
-				list_accesspoints.append(accesspoint_object(pkt.info,pkt.addr2,int( ord(pkt[Dot11Elt:3].info)),enc, signal))
-				duplicates.append(accesspoint_object(pkt.info,pkt.addr2,int( ord(pkt[Dot11Elt:3].info)),enc, signal))
+				print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" %(pkt.info, pkt.addr2,int( ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+				list_accesspoints.append(accesspoint_object(pkt.info,pkt.addr2,int( ord(pkt[Dot11Elt:3].info)),enc, signal, phiser))
+				duplicates.append(accesspoint_object(pkt.info,pkt.addr2,int( ord(pkt[Dot11Elt:3].info)),enc, signal, phiser))
 				wname.append(pkt.info)
 
 
