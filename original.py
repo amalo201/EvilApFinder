@@ -10,19 +10,28 @@ aps = []  # this will store the Access points found.
 duplicates = []
 wname = []
 list_accesspoints = []
+deauth = []
+OUIs = []
 
 
 class accesspoint_object:
-    def __init__(self, ssid, mac, channel, enc, signal):
+    def __init__(self, ssid, mac, channel, enc, signal,OUI):
         self.ssid = ssid
         self.mac = mac
         self.channel = channel
         self.enc = enc
         self.signal = signal
+        self.OUI = OUI
+
+class deauthacet:
+    def __init__(self, mac , count):
+        self.mac = mac
+        self.count =count
 
 
 def FindAps(pkt):
-    if  pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+
+    if  pkt.haslayer(Dot11Beacon):
         if pkt.addr2 not in aps:
             aps.append(pkt.addr2)
             encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
@@ -31,14 +40,68 @@ def FindAps(pkt):
             radiotap = pkt.getlayer(RadioTap)
             signal = radiotap.dBm_AntSignal
 
+
             if re.search("privacy", encryption):
                 enc = 'Y'
             else:
                 enc = 'N'
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal)
-            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal))
+
+            OUI = "This is a beacon"
+
+            #if OUI != "":
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s OUI: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,OUI)
+            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,OUI))
 
             wname.append(pkt.info)
+
+    if pkt.haslayer(Dot11ProbeResp):
+        print "sniffing probe resp"
+
+        specific = pkt.getlayer(Dot11Elt).payload
+        #a = specific.info.encode('hex')
+        OUI = specific [:6]
+
+        if re.search("x07Company\ ", OUI):
+            print "phiser"
+        else:
+            print " no phiser"
+
+
+
+
+        #print("oui before specific",a)
+        print(OUI)
+
+        #if OUI not in OUIs:
+            #OUIs.append(specific)
+            #print('oui appendend', OUIs)
+            #OUIs.append("yausfdyusafduysafduyasfdusayfduyasfduysafdyusagdugsadiugsadugasidhisahdisaugdisaugduiasg")
+            #for i in OUIs:
+            #    if i == "Company":
+            #       print "Wifi phiser is here"
+        #print OUIs
+
+
+        #print " [+] %s with MAC %s channel: %s encryption: %s signal: %s OUI: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, OUI)
+        #list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, OUI))
+
+
+
+    if pkt.haslayer(Dot11Deauth):
+        if len(deauth)>0:
+            if deauth[0].mac == pkt.addr2:
+                deauth[0].count +=1
+            else:
+                deauth.append(deauthacet(pkt.addr2, 1))
+        else :
+            deauth.append(deauthacet(pkt.addr2, 1))
+
+
+def test():
+    print("lenght deauth", len(deauth))
+    if len(deauth) >0:
+        print("mac deauth", deauth[0].mac)
+        print("mac deauth", deauth[0].count)
 
 
 def prino():
@@ -52,9 +115,9 @@ def prino():
 				duplicates.append(list_accesspoints[i])
 				duplicates.append(list_accesspoints[y])
 
-	print("lenght duplicates")
+	print("length duplicates")
 	print(len(duplicates))
-	print('lenght list_access')
+	print('length list_access')
 	print(len(list_accesspoints))
 	unique_words = toolz.unique(list_accesspoints, key=lambda w: w.ssid)
 	for w in unique_words:
@@ -103,7 +166,7 @@ if __name__ == "__main__":
     pkt.start()
 
     signal.signal(signal.SIGINT, signal_handler)
-
-    sniff(iface=interface, count=100, prn=FindAps)
+    sniff(iface=interface, count=1000, prn=FindAps)
     # Test(wname)
     prino()
+    test()
