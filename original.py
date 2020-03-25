@@ -5,13 +5,13 @@ from multiprocessing import Process
 from binascii import hexlify
 import toolz
 from scapy.all import *
-
+from operator import attrgetter
 interface = ' '  # the interface to be put in monitod mode
 aps = []  # this will store the Access points found.
 duplicates = []
-wname = []
 list_accesspoints = []
 deauth = []
+probetest= []
 
 class accesspoint_object:
     def __init__(self, ssid, mac, channel, enc, signal,phiser):
@@ -30,6 +30,7 @@ class deauthacet:
 
 def FindAps(pkt):
 
+
     if  pkt.haslayer(Dot11Beacon):
         if pkt.addr2 not in aps:
             aps.append(pkt.addr2)
@@ -47,26 +48,11 @@ def FindAps(pkt):
                 enc = 'N'
 
 
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,phiser)
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,phiser)
             list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,phiser))
 
-
     if pkt.haslayer(Dot11ProbeResp):
-        print "Sniffing Probe Responses for WiFiPhiser"
 
-        if pkt.addr2 not in aps:
-            aps.append(pkt.addr2)
-            encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
-
-            radiotap = pkt.getlayer(RadioTap)
-            signal = radiotap.dBm_AntSignal
-
-
-            if re.search("privacy", encryption):
-                enc = 'Y'
-            else:
-                enc = 'N'
 
         specific = pkt.getlayer(Dot11Elt)
         while specific and specific.ID != 221:
@@ -75,13 +61,22 @@ def FindAps(pkt):
             this = str(specific)
             if re.search("Company" and "WAP" and "12345" and "Wireless A", this):
                 phiser = 'WifiPhiser Vendor Specifics spotted, proceed with caution'
+            else : phiser = 'not phissher'
 
+        if pkt.addr2 not in probetest:
+            probetest.append(pkt.addr2)
+            encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
+                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+            radiotap = pkt.getlayer(RadioTap)
+            signal = radiotap.dBm_AntSignal
 
-
-        print " [+] %s with MAC %s channel: %s encryption: %s signal: %s OUI: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
-        list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,))
-
-
+            if re.search("privacy", encryption):
+                enc = 'Y'
+            else:
+                enc = 'N'
+            print "Sniffing Probe Responses for WiFiPhiser"
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+            print ('End of Probe')
 
     if pkt.haslayer(Dot11Deauth):
         if len(deauth)>0:
@@ -102,14 +97,15 @@ def test():
 
 def prino():
 	#accespoint_map = {}
-	print(len(list_accesspoints))
-	for i in range(0,len(list_accesspoints)-1):
+
+	print('len access', len(list_accesspoints))
+	for i in range(0,len(list_accesspoints)):
 		#print("i:", i)
 		for y in range(i+1,len(list_accesspoints)):
 		#	print("y,", y)
-			if list_accesspoints[i].ssid == list_accesspoints[y].ssid:
-				duplicates.append(list_accesspoints[i])
-				duplicates.append(list_accesspoints[y])
+			if list_accesspoints[i].ssid == list_accesspoints[y].ssid and list_accesspoints[i] not in duplicates:
+			        duplicates.append(list_accesspoints[i])
+			        duplicates.append(list_accesspoints[y])
 
 	print("length duplicates")
 	print(len(duplicates))
@@ -151,7 +147,7 @@ def signal_handler(signal, frame):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "Usage %s with monitor_interface" % sys.argv[0]
+        print "Usage %s with monitor interface" %sys.argv[0]
         sys.exit(1)
 
     print "[+] Scanning all the channels this can take some time....                                                          "
@@ -162,7 +158,7 @@ if __name__ == "__main__":
     pkt.start()
 
     signal.signal(signal.SIGINT, signal_handler)
-    sniff(iface=interface, count=1000, prn=FindAps)
+    sniff(iface=interface, count=200, prn=FindAps)
 
     prino()
     test()
