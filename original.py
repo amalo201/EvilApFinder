@@ -7,11 +7,12 @@ import toolz
 from scapy.all import *
 from operator import attrgetter
 interface = ' '  # the interface to be put in monitod mode
-aps = []  # this will store the Access points found.
+#aps = []  # this will store the Access points found.
 duplicates = []
-list_accesspoints = []
 deauth = []
 probetest= []
+aps_list = []
+list_accesspoints = []
 
 class accesspoint_object:
     def __init__(self, ssid, mac, channel, enc, signal,phiser):
@@ -32,24 +33,29 @@ def FindAps(pkt):
 
 
     if  pkt.haslayer(Dot11Beacon):
-        if pkt.addr2 not in aps:
-            aps.append(pkt.addr2)
+
+        ssid, mac = pkt.info, pkt.addr2
+        aps = "{}=*={}".format(mac, ssid)
+        if aps not in aps_list:
+            aps_list.append(aps)
+
             encryption = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+                        {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
 
             radiotap = pkt.getlayer(RadioTap)
             signal = radiotap.dBm_AntSignal
             phiser = "Beacon"
-
 
             if re.search("privacy", encryption):
                 enc = 'Y'
             else:
                 enc = 'N'
 
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser))
 
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,phiser)
-            list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal,phiser))
+
+
 
     if pkt.haslayer(Dot11ProbeResp):
 
@@ -59,7 +65,7 @@ def FindAps(pkt):
             specific = specific.payload.getlayer(Dot11Elt)
         if specific.ID == 221:
             this = str(specific)
-            if re.search("Company" and "WAP" and "12345" and "Wireless A", this):
+            if re.search("Company" , this):
                 phiser = 'WifiPhiser Vendor Specifics spotted, proceed with caution'
             else : phiser = 'not phissher'
 
@@ -74,16 +80,16 @@ def FindAps(pkt):
                 enc = 'Y'
             else:
                 enc = 'N'
-            print "Sniffing Probe Responses for WiFiPhiser"
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
-            print ('End of Probe')
+            #print "Sniffing Probe Responses for WiFiPhiser"
+            #print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+            #print ('End of Probe')
 
     if pkt.haslayer(Dot11Deauth):
         if len(deauth)>0:
             if deauth[0].mac == pkt.addr2:
                 deauth[0].count +=1
             else:
-                deauth.append(deauthacet(pkt.addr2, 1))
+                deauth.append(deauthacet(pkt.addr2,  1))
         else :
             deauth.append(deauthacet(pkt.addr2, 1))
 
@@ -91,18 +97,20 @@ def FindAps(pkt):
 def test():
     print("lenght deauth", len(deauth))
     if len(deauth) >0:
-        print("mac deauth", deauth[0].mac)
-        print("mac deauth", deauth[0].count)
+        for i in duplicates:
+            if deauth[0].mac == i.mac:
+                print ("this mac is probably the victim", i.mac)
 
+        print("mac deauth", deauth[0].mac)
+        print("count of deauth packets", deauth[0].count)
 
 def prino():
-	#accespoint_map = {}
 
 	print('len access', len(list_accesspoints))
 	for i in range(0,len(list_accesspoints)):
-		#print("i:", i)
+
 		for y in range(i+1,len(list_accesspoints)):
-		#	print("y,", y)
+
 			if list_accesspoints[i].ssid == list_accesspoints[y].ssid and list_accesspoints[i] not in duplicates:
 			        duplicates.append(list_accesspoints[i])
 			        duplicates.append(list_accesspoints[y])
@@ -120,13 +128,13 @@ def prino():
 		print(u.ssid)
 		print(u.mac)
 		print(u.channel)
-# print(duplicates)
+
 
 
 def channel():  # This will hope from channel 1 to 12
     while True:
         try:
-            channel = random.randrange(1, 12)
+            channel = random.randrange(1, 13)
             os.system("iw dev %s set channel %d" % (interface, channel))
             time.sleep(1)
         except KeyboardInterrupt:
@@ -140,9 +148,10 @@ def signal_handler(signal, frame):
     print
     "\n-=-=-=-=-=  Here is what we found =-=-=-=-=-=-"
     print
-    "Total APs found: %d" % len(aps)
+    "Total APs found: %d" % len(aps_list)
 
     sys.exit(0)
+
 
 
 if __name__ == "__main__":
@@ -154,11 +163,13 @@ if __name__ == "__main__":
 
     interface = sys.argv[1]
 
+    signal.signal(signal.SIGINT, signal_handler)
+
     pkt = Process(target=channel)
     pkt.start()
 
-    signal.signal(signal.SIGINT, signal_handler)
-    sniff(iface=interface, count=200, prn=FindAps)
-
+    sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
     test()
+
+
