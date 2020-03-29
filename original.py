@@ -13,6 +13,7 @@ deauth = []
 probetest= []
 aps_list = []
 list_accesspoints = []
+pineap = []
 
 class accesspoint_object:
     def __init__(self, ssid, mac, channel, enc, signal,phiser):
@@ -27,7 +28,6 @@ class deauthacet:
     def __init__(self, mac , count):
         self.mac = mac
         self.count =count
-
 
 def FindAps(pkt):
 
@@ -81,7 +81,7 @@ def FindAps(pkt):
             else:
                 enc = 'N'
             #print "Sniffing Probe Responses for WiFiPhiser"
-            #print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
             #print ('End of Probe')
 
     if pkt.haslayer(Dot11Deauth):
@@ -93,6 +93,22 @@ def FindAps(pkt):
         else :
             deauth.append(deauthacet(pkt.addr2, 1))
 
+
+def newtest():
+    print('len dup', len(duplicates))
+    for i in range(0,len(duplicates)):
+
+        for y in range(i+1,len(duplicates)):
+
+            if duplicates[i].mac == duplicates[y].mac:
+                print('dup i ', duplicates[i].mac)
+                pineap.append(duplicates[i])
+                pineap.append(duplicates[y])
+                #pineap.append(duplicates[y].mac)
+    for i in pineap:
+        print i.mac
+        print i.ssid
+        print i.channel
 
 def test():
     print("lenght deauth", len(deauth))
@@ -170,6 +186,8 @@ if __name__ == "__main__":
 
     sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
-    test()
+    #test()
+    newtest()
 
 
+z
