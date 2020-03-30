@@ -2,12 +2,9 @@
 
 import sys, os, signal, re
 from multiprocessing import Process
-from binascii import hexlify
 import toolz
 from scapy.all import *
-from operator import attrgetter
 interface = ' '  # the interface to be put in monitod mode
-#aps = []  # this will store the Access points found.
 duplicates = []
 deauth = []
 probetest= []
@@ -35,7 +32,7 @@ def FindAps(pkt):
     if  pkt.haslayer(Dot11Beacon):
 
         ssid, mac = pkt.info, pkt.addr2
-        aps = "{}=*={}".format(mac, ssid)
+        aps = "{}=*={}".format(ssid, mac)
         if aps not in aps_list:
             aps_list.append(aps)
 
@@ -94,21 +91,25 @@ def FindAps(pkt):
             deauth.append(deauthacet(pkt.addr2, 1))
 
 
-def newtest():
-    print('len dup', len(duplicates))
-    for i in range(0,len(duplicates)):
+def pineapple():
+    for i in range(0,len(list_accesspoints)):
 
-        for y in range(i+1,len(duplicates)):
+        for y in range(i+1,len(list_accesspoints)):
 
-            if duplicates[i].mac == duplicates[y].mac:
-                print('dup i ', duplicates[i].mac)
-                pineap.append(duplicates[i])
-                pineap.append(duplicates[y])
-                #pineap.append(duplicates[y].mac)
-    for i in pineap:
-        print i.mac
-        print i.ssid
-        print i.channel
+            if list_accesspoints[i].mac == list_accesspoints[y].mac:
+                pineap.append(list_accesspoints[i])
+                pineap.append(list_accesspoints[y])
+
+    unique_words = toolz.unique(pineap, key=lambda i: i.ssid)
+    print('Possible Wifi Pineapple in the area....')
+    print "List of SSIDs with same Mac:"
+    for i in unique_words:
+        print ("SSID:  " , i.ssid)
+        print ("MAC:  " , i.mac)
+        print ("Channel:  ", i.channel)
+        print ("Encryption:  ", i.enc)
+        print "" \
+              ""
 
 def test():
     print("lenght deauth", len(deauth))
@@ -186,8 +187,7 @@ if __name__ == "__main__":
 
     sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
-    #test()
-    newtest()
+    test()
+    pineapple()
 
 
-z
