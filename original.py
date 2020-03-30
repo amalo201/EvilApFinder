@@ -4,7 +4,9 @@ import sys, os, signal, re
 from multiprocessing import Process
 import toolz
 from scapy.all import *
+
 interface = ' '  # the interface to be put in monitod mode
+#aps = []  # this will store the Access points found.
 duplicates = []
 deauth = []
 probetest= []
@@ -26,13 +28,17 @@ class deauthacet:
         self.mac = mac
         self.count =count
 
-	
+
+
 def getroot():
-	if not os.geteuid()==0:
-    		sys.exit('You are not root... Please run as root.')
+    if os.geteuid() == 0:
+        print " [+] Running as root..."
+        print"" \
+             ""
+    else:
+        print "[+] You are not root.. Please run as root!"
 
 def FindAps(pkt):
-
 
     if  pkt.haslayer(Dot11Beacon):
 
@@ -106,8 +112,8 @@ def pineapple():
                 pineap.append(list_accesspoints[y])
 
     unique_words = toolz.unique(pineap, key=lambda i: i.ssid)
-    print('Possible Wifi Pineapple in the area....')
-    print "List of SSIDs with same Mac:"
+    print "[+] Possible Wifi Pineapple in the area....", len(pineap)
+    print "[+] List of SSIDs with same Mac:"
     for i in unique_words:
         print ("SSID:  " , i.ssid)
         print ("MAC:  " , i.mac)
@@ -117,18 +123,18 @@ def pineapple():
               ""
 
 def test():
-    print("lenght deauth", len(deauth))
+    print "[+] Number of Deauthentication Packets Received", len(deauth)
     if len(deauth) >0:
         for i in duplicates:
             if deauth[0].mac == i.mac:
-                print ("this mac is probably the victim", i.mac)
+                print ("This MAC is probably the victim AP", i.mac)
 
-        print("mac deauth", deauth[0].mac)
-        print("count of deauth packets", deauth[0].count)
+        print " [+] MAC Deauthenticating", deauth[0].mac
+        print " [+] Number of Deauthentication Packets", deauth[0].count
 
 def prino():
 
-	print('len access', len(list_accesspoints))
+	print('[+] Number of Access Points Found', len(list_accesspoints))
 	for i in range(0,len(list_accesspoints)):
 
 		for y in range(i+1,len(list_accesspoints)):
@@ -137,15 +143,15 @@ def prino():
 			        duplicates.append(list_accesspoints[i])
 			        duplicates.append(list_accesspoints[y])
 
-	print("length duplicates")
+	print("[+] Duplicates number")
 	print(len(duplicates))
-	print('length list_access')
+	print("[+] Total Access Points Found")
 	print(len(list_accesspoints))
 	unique_words = toolz.unique(list_accesspoints, key=lambda w: w.ssid)
 	for w in unique_words:
 			print(w.ssid)
 
-	print("duplicates:")
+	print("[+] Duplicate Access Points")
 	for u in duplicates:
 		print(u.ssid)
 		print(u.mac)
@@ -181,15 +187,18 @@ if __name__ == "__main__":
         print "Usage %s with monitor interface" %sys.argv[0]
         sys.exit(1)
 
-    print "[+] Scanning all the channels this can take some time....                                                          "
-
+    getroot()
+    print " [+] Scanning all the channels this can take some time.... "
+    print "" \
+          ""
     interface = sys.argv[1]
 
     signal.signal(signal.SIGINT, signal_handler)
 
     pkt = Process(target=channel)
     pkt.start()
-    getroot()
+
+
     sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
     test()
