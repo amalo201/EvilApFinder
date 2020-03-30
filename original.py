@@ -26,6 +26,11 @@ class deauthacet:
         self.mac = mac
         self.count =count
 
+	
+def getroot():
+	if not os.geteuid()==0:
+    		sys.exit('You are not root... Please run as root.')
+
 def FindAps(pkt):
 
 
@@ -184,7 +189,7 @@ if __name__ == "__main__":
 
     pkt = Process(target=channel)
     pkt.start()
-
+    getroot()
     sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
     test()
