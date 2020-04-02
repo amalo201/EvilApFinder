@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, signal, re
+import sys, os, signal, re, stat
 from multiprocessing import Process
 import toolz
 from scapy.all import *
@@ -13,7 +13,7 @@ probetest= []
 aps_list = []
 list_accesspoints = []
 pineap = []
-f = open("myfile.txt", "w")
+wifiphisher = []
 
 
 class accesspoint_object:
@@ -76,6 +76,7 @@ def FindAps(pkt):
         if specific.ID == 221:
             this = str(specific)
             if re.search("Company" , this):
+                wifiphisher.append(pkt.addr2)
                 phiser = 'WifiPhiser Vendor Specifics spotted, proceed with caution'
             else : phiser = 'not phissher'
 
@@ -169,11 +170,26 @@ def writeduplicates():
 
 def pineapplemac():
     if len(pineap) > 0:
-        newfile = open("pineapplemac.txt", "w")
+
 
         for i in pineap:
-            print >> newfile, i.mac
-        newfile.close()
+            newfile = open("pineapplemac", "w")
+            print >> newfile, "#!/bin/bash" '\n' '\n' "mac=$(wpa_cli status -i wlan0 | grep bssid | cut -d '=' -f 2 )" '\n' '\n' "if [[ $mac ==", i.mac, " ]]; then" '\n' "   " "nmcli device disconnect wlan0" '\n' "fi"
+
+        os.chmod("pineapplemac", stat.S_IXUSR)
+        os.rename('pineapplemac', '/etc/network/if-up.d/pineapplemac')
+
+
+def wifiphiser():
+    if len(wifiphisher) > 0:
+
+
+        for i in wifiphisher:
+            newfile = open("wifiphisher", "w")
+            print >> newfile, "#!/bin/bash" '\n' '\n' "mac=$(wpa_cli status -i wlan0 | grep bssid | cut -d '=' -f 2 )" '\n' '\n' "if [[ $mac ==", i, "]]; then" '\n' "   " "nmcli device disconnect wlan0" '\n' "fi"
+
+        os.chmod("wifiphisher", stat.S_IXUSR)
+        os.rename('wifiphisher', '/etc/network/if-up.d/wifiphisher')
 
 
 
@@ -225,5 +241,4 @@ if __name__ == "__main__":
     writeduplicates()
     pineapple()
     pineapplemac()
-
-
+    wifiphiser()
