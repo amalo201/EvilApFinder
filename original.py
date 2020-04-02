@@ -13,6 +13,8 @@ probetest= []
 aps_list = []
 list_accesspoints = []
 pineap = []
+f = open("myfile.txt", "w")
+
 
 class accesspoint_object:
     def __init__(self, ssid, mac, channel, enc, signal,phiser):
@@ -152,10 +154,28 @@ def prino():
 			print(w.ssid)
 
 	print("[+] Duplicate Access Points")
+
 	for u in duplicates:
 		print(u.ssid)
 		print(u.mac)
 		print(u.channel)
+
+def writeduplicates():
+
+    myfile = open("duplicates.txt", "w")
+    for i in duplicates:
+        print >> myfile, i.mac, "=", i.ssid
+    myfile.close()
+
+def pineapplemac():
+    if len(pineap) > 0:
+        newfile = open("pineapplemac.txt", "w")
+
+        for i in pineap:
+            print >> newfile, i.mac
+        newfile.close()
+
+
 
 
 
@@ -202,6 +222,8 @@ if __name__ == "__main__":
     sniff(iface=interface, count=500, prn=FindAps, store = 0)
     prino()
     test()
+    writeduplicates()
     pineapple()
+    pineapplemac()
 
 
