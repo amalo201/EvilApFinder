@@ -6,7 +6,6 @@ import toolz
 from scapy.all import *
 
 interface = ' '  # the interface to be put in monitod mode
-#aps = []  # this will store the Access points found.
 duplicates = []
 deauth = []
 probetest= []
@@ -195,6 +194,40 @@ def wifiphiser():
 
 
 
+
+def examineduplicates():
+    if len(duplicates) > 0:
+        options = duplicates
+        print "Choose access point to investigate further" "\n"
+        for i in range(0, len(options)):
+            print str(i) + ':', options[i].ssid, ':', options[i].mac
+
+        inp = int(input("Enter a number: "))
+
+        while inp not in range (0,len(options)):
+            inp = int(input("Enter a valid number:"))
+
+
+        if inp in range(0,len(options)):
+            inp = options[inp].mac.upper()
+            print "heres is", inp
+
+
+        try:
+            os.system("ifconfig wlan0 up")
+            time.sleep(1)
+            os.system("nmcli device wifi connect %s " % (inp))
+            time.sleep(2)
+            os.system("dhclient wlan0")
+            os.system("ifconfig")
+        except KeyboardInterrupt:
+            break
+
+
+
+
+
+
 def channel():  # This will hope from channel 1 to 12
     while True:
         try:
@@ -242,3 +275,4 @@ if __name__ == "__main__":
     pineapple()
     pineapplemac()
     wifiphiser()
+    examineduplicates()
