@@ -203,25 +203,58 @@ def examineduplicates():
             print str(i) + ':', options[i].ssid, ':', options[i].mac
 
         inp = int(input("Enter a number: "))
+        inp2 = int(input("Enter SSID number: "))
 
-        while inp not in range (0,len(options)):
+        inp3 = int(input("Enter the duplicate to check against: "))
+
+        while inp and inp2 not in range (0,len(options)):
             inp = int(input("Enter a valid number:"))
+            inp2 = int(input("Enter a valid SSID:"))
+            inp3 = int(input("Enter a valid number of duplicate:"))
 
-
-        if inp in range(0,len(options)):
+        if inp and inp2 in range(0,len(options)):
             inp = options[inp].mac.upper()
-            print "heres is", inp
+            inp2 = options[inp2].ssid
 
+            inp3 = options[inp3].mac.upper()
 
-        try:
-            os.system("ifconfig wlan0 up")
-            time.sleep(1)
-            os.system("nmcli device wifi connect %s " % (inp))
-            time.sleep(2)
+            print "here is", inp2, "with MAC", inp
+            print "here is", inp2, "with MAC", inp3
+
+            os.system("wpa_cli -i wlan0 disconnect")
+            time.sleep(5)
+            os.system("nmcli device wifi connect %s bssid %s" % (inp2, inp3))
+            time.sleep(5)
+            os.system("nmcli device wifi rescan")
+            time.sleep(6)
+            os.system("nmcli device wifi connect %s bssid %s" % (inp2,inp))
+            time.sleep(5)
+
             os.system("dhclient wlan0")
+            time.sleep(5)
             os.system("ifconfig")
-        except KeyboardInterrupt:
-            break
+            time.sleep(2)
+            os.system("curl ipinfo.io")
+            time.sleep(2)
+            os.system("traceroute www.google.com")
+
+            print "Repeat for next duplicate " "\n"
+
+            os.system("wpa_cli -i wlan0 disconnect")
+            time.sleep(5)
+            os.system("nmcli connection delete %s" % (inp2))
+            time.sleep(3)
+            os.system("nmcli device wifi connect %s bssid %s" % (inp2 ,inp3))
+            time.sleep(5)
+
+            os.system("dhclient wlan0")
+            time.sleep(5)
+            os.system("ifconfig")
+            time.sleep(2)
+            os.system("curl ipinfo.io")
+            time.sleep(2)
+            os.system("traceroute www.google.com")
+
 
 
 
@@ -276,3 +309,6 @@ if __name__ == "__main__":
     pineapplemac()
     wifiphiser()
     examineduplicates()
+
+
+
