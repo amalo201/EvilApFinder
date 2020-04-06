@@ -4,8 +4,9 @@ import sys, os, signal, re, stat
 from multiprocessing import Process
 import toolz
 from scapy.all import *
+import netifaces
 
-interface = ' '  # the interface to be put in monitod mode
+#interface = ' '  # the interface to be put in monitod mode
 duplicates = []
 deauth = []
 probetest= []
@@ -13,6 +14,8 @@ aps_list = []
 list_accesspoints = []
 pineap = []
 wifiphisher = []
+monitor_on = None
+DN = open(os.devnull, 'w')
 
 
 class accesspoint_object:
@@ -33,11 +36,25 @@ class deauthacet:
 
 def getroot():
     if os.geteuid() == 0:
-        print " [+] Running as root..."
-        print"" \
-             ""
+        print (" [+] Running as root...")
+        print("" \
+             "")
     else:
-        print "[+] You are not root.. Please run as root!"
+        print ("[+] You are not root.. Please run as root!")
+
+def getinterface():
+
+    global iface
+    netifaces.interfaces()
+    for iface in netifaces.interfaces():
+        if iface.startswith('wlan'):
+            print "Interface found..Starting monitor mode..."
+            os.system('airmon-ng start %s'%iface)
+    netifaces.interfaces()
+    for iface in netifaces.interfaces():
+        if iface.startswith('wlan'):
+            print "Monitor mode sucessful"
+
 
 def FindAps(pkt):
 
@@ -60,7 +77,7 @@ def FindAps(pkt):
             else:
                 enc = 'N'
 
-            print " [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" % (pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser)
+            print (" [+] %s with MAC %s channel: %s encryption: %s signal: %s phiser: %s" %(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser))
             list_accesspoints.append(accesspoint_object(pkt.info, pkt.addr2, int(ord(pkt[Dot11Elt:3].info)), enc, signal, phiser))
 
 
@@ -194,7 +211,6 @@ def wifiphiser():
 
 
 
-
 def examineduplicates():
     if len(duplicates) > 0:
         options = duplicates
@@ -206,6 +222,7 @@ def examineduplicates():
         inp2 = int(input("Enter SSID number: "))
 
         inp3 = int(input("Enter the duplicate to check against: "))
+
 
         while inp and inp2 not in range (0,len(options)):
             inp = int(input("Enter a valid number:"))
@@ -256,16 +273,11 @@ def examineduplicates():
             os.system("traceroute www.google.com")
 
 
-
-
-
-
-
 def channel():  # This will hope from channel 1 to 12
     while True:
         try:
             channel = random.randrange(1, 13)
-            os.system("iw dev %s set channel %d" % (interface, channel))
+            os.system("iw dev %s set channel %d" % (iface, channel))
             time.sleep(1)
         except KeyboardInterrupt:
             break
@@ -284,16 +296,19 @@ def signal_handler(signal, frame):
 
 
 
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage %s with monitor interface" %sys.argv[0]
-        sys.exit(1)
+    #if len(sys.argv) != 2:
+        #print "Please set your interface in monitor mode before executing %s" %sys.argv[0]
+        #print "Then execute like this : %s interface.... " '\n' "(eg ./original.py wlan0mon)" %sys.argv[0]
+        #sys.exit(1)
 
     getroot()
-    print " [+] Scanning all the channels this can take some time.... "
+    getinterface()
+    time.sleep(6)
+    print " [+] Scanning all the channels on interface %s this can take some time...." %iface
     print "" \
           ""
-    interface = sys.argv[1]
 
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -301,7 +316,7 @@ if __name__ == "__main__":
     pkt.start()
 
 
-    sniff(iface=interface, count=500, prn=FindAps, store = 0)
+    sniff(iface=iface, count=10, prn=FindAps, store = 0)
     prino()
     test()
     writeduplicates()
