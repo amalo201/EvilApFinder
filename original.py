@@ -6,7 +6,7 @@ import toolz
 from scapy.all import *
 import netifaces
 
-#interface = ' '  # the interface to be put in monitod mode
+
 duplicates = []
 deauth = []
 probetest= []
@@ -14,8 +14,6 @@ aps_list = []
 list_accesspoints = []
 pineap = []
 wifiphisher = []
-monitor_on = None
-DN = open(os.devnull, 'w')
 
 
 class accesspoint_object:
@@ -34,7 +32,8 @@ class deauthacet:
 
 
 
-def getroot():
+def getroot(): #Ensures the user is root.
+    
     if os.geteuid() == 0:
         print (" [+] Running as root...")
         print("" \
@@ -42,7 +41,7 @@ def getroot():
     else:
         print ("[+] You are not root.. Please run as root!")
 
-def getinterface():
+def getinterface(): #Finds the wireless interface and activates monitor mode
 
     global iface
     netifaces.interfaces()
@@ -56,7 +55,7 @@ def getinterface():
             print "Monitor mode sucessful"
 
 
-def FindAps(pkt):
+def FindAps(pkt): #Sniffs the air for Beacon, Probe Responses and Deauthentication packets. Retrieves SSID, BSSID, CHANNEL, ENCRYPTION and RSS from APs nearby.
 
     if  pkt.haslayer(Dot11Beacon):
 
@@ -121,7 +120,7 @@ def FindAps(pkt):
             deauth.append(deauthacet(pkt.addr2, 1))
 
 
-def pineapple():
+def pineapple(): #Lists all the SSIDs with same MAC, identifies pineapple
     for i in range(0,len(list_accesspoints)):
 
         for y in range(i+1,len(list_accesspoints)):
@@ -141,7 +140,8 @@ def pineapple():
         print "" \
               ""
 
-def test():
+def deauthtest(): #Checks the Deauthentication packets and prints the MAC of AP being deauthenticated
+    
     print "[+] Number of Deauthentication Packets Received", len(deauth)
     if len(deauth) >0:
         for i in duplicates:
@@ -151,7 +151,7 @@ def test():
         print " [+] MAC Deauthenticating", deauth[0].mac
         print " [+] Number of Deauthentication Packets", deauth[0].count
 
-def prino():
+def findall(): #List all the Access Points Found and Duplicate SSIDs
 
 	print('[+] Number of Access Points Found', len(list_accesspoints))
 	for i in range(0,len(list_accesspoints)):
@@ -177,14 +177,18 @@ def prino():
 		print(u.mac)
 		print(u.channel)
 
-def writeduplicates():
+
+
+def writeduplicates(): #Creates a file with all the duplicates, that is later used in duplicates.py
 
     myfile = open("duplicates.txt", "w")
     for i in duplicates:
-        print >> myfile, i.mac, "=", i.ssid
+        print >> myfile, i.mac.upper(), "=", i.ssid
     myfile.close()
 
-def pineapplemac():
+
+
+def pineapplemac():  #Blacklists the MAC of multiple SSIDs with same MAC..KARMA attack from Wifipineapple preventing connection from user
     if len(pineap) > 0:
 
 
@@ -196,7 +200,9 @@ def pineapplemac():
         os.rename('pineapplemac', '/etc/network/if-up.d/pineapplemac')
 
 
-def wifiphiser():
+
+
+def wifiphiser():  #Identifies access points run by wifiphisher and blacklists its MAC preventing connection from user
     if len(wifiphisher) > 0:
 
 
@@ -210,67 +216,69 @@ def wifiphiser():
 
 
 
+#This function should only be used if the user has 2 wireless interfaces.
+# It achieves the same results as duplicate.py script but does not require the user to exit this script.
 
-def examineduplicates():
-    if len(duplicates) > 0:
-        options = duplicates
-        print "Choose access point to investigate further" "\n"
-        for i in range(0, len(options)):
-            print str(i) + ':', options[i].ssid, ':', options[i].mac
+#def examineduplicates():
+#   if len(duplicates) > 0:
+#        options = duplicates
+#        print "Choose access point to investigate further" "\n"
+#        for i in range(0, len(options)):
+#            print str(i) + ':', options[i].ssid, ':', options[i].mac
 
-        inp = int(input("Enter a number: "))
-        inp2 = int(input("Enter SSID number: "))
+#        inp = int(input("Enter a number: "))
+#        inp2 = int(input("Enter SSID number: "))
 
-        inp3 = int(input("Enter the duplicate to check against: "))
+#        inp3 = int(input("Enter the duplicate to check against: "))
 
 
-        while inp and inp2 not in range (0,len(options)):
-            inp = int(input("Enter a valid number:"))
-            inp2 = int(input("Enter a valid SSID:"))
-            inp3 = int(input("Enter a valid number of duplicate:"))
+ #       while inp and inp2 not in range (0,len(options)):
+ #           inp = int(input("Enter a valid number:"))
+ #           inp2 = int(input("Enter a valid SSID:"))
+ #           inp3 = int(input("Enter a valid number of duplicate:"))
 
-        if inp and inp2 in range(0,len(options)):
-            inp = options[inp].mac.upper()
-            inp2 = options[inp2].ssid
+  #      if inp and inp2 in range(0,len(options)):
+#         inp = options[inp].mac.upper()
+  #          inp2 = options[inp2].ssid
 
-            inp3 = options[inp3].mac.upper()
+#            inp3 = options[inp3].mac.upper()
 
-            print "here is", inp2, "with MAC", inp
-            print "here is", inp2, "with MAC", inp3
+ #           print "here is", inp2, "with MAC", inp
+ #           print "here is", inp2, "with MAC", inp3
 
-            os.system("wpa_cli -i wlan0 disconnect")
-            time.sleep(5)
-            os.system("nmcli device wifi connect %s bssid %s" % (inp2, inp3))
-            time.sleep(5)
-            os.system("nmcli device wifi rescan")
-            time.sleep(6)
-            os.system("nmcli device wifi connect %s bssid %s" % (inp2,inp))
-            time.sleep(5)
+ #           os.system("wpa_cli -i wlan0 disconnect")
+ #           time.sleep(5)
+ #           os.system("nmcli device wifi connect %s bssid %s" % (inp2, inp3))
+ #           time.sleep(5)
+  #          os.system("nmcli device wifi rescan")
+   #         time.sleep(6)
+    #        os.system("nmcli device wifi connect %s bssid %s" % (inp2,inp))
+    #        time.sleep(5)
+    #        os.system("dhclient wlan0")
+    #        time.sleep(5)
+  #          os.system("ifconfig")
+   #         time.sleep(2)
+    #        os.system("curl ipinfo.io")
+     
+     #       time.sleep(2)
+     #       os.system("traceroute www.google.com")
 
-            os.system("dhclient wlan0")
-            time.sleep(5)
-            os.system("ifconfig")
-            time.sleep(2)
-            os.system("curl ipinfo.io")
-            time.sleep(2)
-            os.system("traceroute www.google.com")
+#            print "Repeat for next duplicate " "\n"
 
-            print "Repeat for next duplicate " "\n"
+#            os.system("wpa_cli -i wlan0 disconnect")
+#            time.sleep(5)
+ #           os.system("nmcli connection delete %s" % (inp2))
+  #          time.sleep(3)
+   #         os.system("nmcli device wifi connect %s bssid %s" % (inp2 ,inp3))
+    #        time.sleep(5)
 
-            os.system("wpa_cli -i wlan0 disconnect")
-            time.sleep(5)
-            os.system("nmcli connection delete %s" % (inp2))
-            time.sleep(3)
-            os.system("nmcli device wifi connect %s bssid %s" % (inp2 ,inp3))
-            time.sleep(5)
-
-            os.system("dhclient wlan0")
-            time.sleep(5)
-            os.system("ifconfig")
-            time.sleep(2)
-            os.system("curl ipinfo.io")
-            time.sleep(2)
-            os.system("traceroute www.google.com")
+    #        os.system("dhclient wlan0")
+    #        time.sleep(5)
+    #        os.system("ifconfig")
+    #        time.sleep(2)
+    #        os.system("curl ipinfo.io")
+    #        time.sleep(2)
+    #        os.system("traceroute www.google.com")
 
 
 def channel():  # This will hope from channel 1 to 12
@@ -287,10 +295,6 @@ def signal_handler(signal, frame):
     pkt.terminate()
     pkt.join()
 
-    print
-    "\n-=-=-=-=-=  Here is what we found =-=-=-=-=-=-"
-    print
-    "Total APs found: %d" % len(aps_list)
 
     sys.exit(0)
 
@@ -298,14 +302,11 @@ def signal_handler(signal, frame):
 
 
 if __name__ == "__main__":
-    #if len(sys.argv) != 2:
-        #print "Please set your interface in monitor mode before executing %s" %sys.argv[0]
-        #print "Then execute like this : %s interface.... " '\n' "(eg ./original.py wlan0mon)" %sys.argv[0]
-        #sys.exit(1)
+  
 
     getroot()
     getinterface()
-    time.sleep(6)
+    time.sleep(1)
     print " [+] Scanning all the channels on interface %s this can take some time...." %iface
     print "" \
           ""
@@ -316,14 +317,25 @@ if __name__ == "__main__":
     pkt.start()
 
 
-    sniff(iface=iface, count=10, prn=FindAps, store = 0)
-    prino()
-    test()
+    sniff(iface=iface, count=200, prn=FindAps, store = 0)
+    findall()
+    deauthtest()
     writeduplicates()
     pineapple()
     pineapplemac()
     wifiphiser()
-    examineduplicates()
+    #examineduplicates()
 
+    if len(duplicates) > 0:   #Comment this if you are using 2 wireless cards and the examineduplicates function ;)
 
-
+        answer = None
+        while answer not in ("Yes", "No"):
+            answer = str(input ("Duplicates found, would you like to examine them? Yes or No: "))
+            if answer == "Yes":
+                print "Okay exit this script and run duplicates.py"
+                time.sleep(3)
+            elif answer == "No":
+                print "Okay, Ciao Ciao"
+                sys.exit()
+            else:
+                print "Please enter Yes or No."
